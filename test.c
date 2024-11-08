@@ -50,21 +50,24 @@ matrix vect_matrix_convolution(matrix M, int size, int step){
     /*  Return matrix */
 
     matrix R;
+    int N_col = ((M.column-size)/step)+1;
+    int N_row = ((M.row-size)/step)+1;
+
     R.row = size*size;
-    R.column = ((M.column-size)/step)*((M.row-size)/step);
+    R.column = N_col*N_row;
 
     R.data = (float**)malloc(R.column*sizeof(float*));
 
     int k = 0;
     int vect_kern = 0;
 
-    for(int i = 0 ; i < M.row-size+1 ; i++ ){
-        for( int j = 0 ; j < M.column-size+1; j++){
+    for(int i = 0 ; i < N_row ; i++ ){
+        for( int j = 0 ; j < N_col; j++){
             *(R.data+k) = (float*)malloc(size*size*sizeof(float*));
             vect_kern = 0;
             for(int l = 0 ; l < size ; l++){
                 for(int c = 0 ; c < size ; c++){
-                   *(*(R.data+k)+vect_kern)= M.data[j+c][i+l];
+                   *(*(R.data+k)+vect_kern)= M.data[j*step+c][i*step+l];
                    vect_kern ++;                
                 }
             }
@@ -73,6 +76,24 @@ matrix vect_matrix_convolution(matrix M, int size, int step){
     }
 
     return R;
+}
+
+matrix matrix_product(matrix A, matrix B){
+
+    matrix C;
+    C.column = B.column;
+    C.row = A.row;
+
+    for(int i = 0 ; i < C.row ; i++ ){
+        for(int j = 0 ; i < C.column ; i++ ){
+            C.data[j][i] = 0;
+            for(int k = 0 ; i < A.column ; i++){
+                C.data[j][i] += A.data[j+k][i]*B.data[j][i+k];
+            }
+        }
+    }
+
+    return C;
 }
 
 int free_matrix(matrix M){
@@ -90,16 +111,22 @@ int main() {
 
     srand( time(0) );
 
-    matrix X = init_matrix(9,9);
-    display_matrix(X);
+    matrix A = init_matrix(9,9);
+    display_matrix(A);
 
     printf("\n");
 
-    matrix Vect = vect_matrix_convolution(X, 3, 2);
-    display_matrix(Vect);
+    matrix B = init_matrix(9,9);
+    display_matrix(B);
 
-    free_matrix(X);
-    free_matrix(Vect);
+    printf("\n");
+
+    matrix C = matrix_product(A,B);
+    display_matrix(C);
+
+    free_matrix(A);
+    free_matrix(B);
+    free_matrix(C);
 
     return 0;
 
