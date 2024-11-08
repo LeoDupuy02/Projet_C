@@ -80,15 +80,22 @@ matrix vect_matrix_convolution(matrix M, int size, int step){
 
 matrix matrix_product(matrix A, matrix B){
 
+    /* Effectue le produit entre A et B et le retourne */
+    /* Il faut que nb_col(A) = nb_row(B) */
+
+    /* Génére la structure de la matrice produit */
     matrix C;
     C.column = B.column;
     C.row = A.row;
+    C.data = (float**)malloc(C.column*sizeof(float*));
 
-    for(int i = 0 ; i < C.row ; i++ ){
-        for(int j = 0 ; i < C.column ; i++ ){
-            C.data[j][i] = 0;
-            for(int k = 0 ; i < A.column ; i++){
-                C.data[j][i] += A.data[j+k][i]*B.data[j][i+k];
+    /* Remplissage de la matrice produit */
+    for(int i = 0 ; i < C.column ; i++ ){
+        *(C.data+i) = (float*)malloc(C.row*sizeof(float*));
+        for(int j = 0 ; j < C.row ; j++ ){
+            C.data[i][j] = 0;
+            for(int k = 0 ; k < A.column ; k++){
+                C.data[i][j] += A.data[k][j]*B.data[i][k];
             }
         }
     }
@@ -111,12 +118,12 @@ int main() {
 
     srand( time(0) );
 
-    matrix A = init_matrix(9,9);
+    matrix A = init_matrix(3,3);
     display_matrix(A);
 
     printf("\n");
 
-    matrix B = init_matrix(9,9);
+    matrix B = init_matrix(3,3);
     display_matrix(B);
 
     printf("\n");
