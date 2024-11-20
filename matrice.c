@@ -12,6 +12,14 @@ struct _matrice{
 
 };
 
+void remplissage_n(matrice *matrice, float n){
+    for(int i=0; i<(*matrice).ligne; i++){
+        for(int j=0; j<(*matrice).colonne; j++){
+            (*matrice).tab[i][j] = n;
+        }
+    }
+}
+
 matrice creation_matrice(int ligne, int colonne){
 
     // Déf d'une matrice avec ses dimensions
@@ -30,7 +38,7 @@ matrice creation_matrice(int ligne, int colonne){
     for(int i=0; i<ligne; i++){
         matrice.tab[i] = (float *)malloc(colonne * sizeof(float));
     }
-
+    remplissage_n(&matrice, 0);
     return matrice;
 }
 
@@ -55,14 +63,6 @@ void dimension_matrice(matrice *matrice){
     printf("(%d ; %d)\n", (*matrice).ligne, (*matrice).colonne);
 }
 
-void remplissage_n(matrice *matrice, float n){
-    for(int i=0; i<(*matrice).ligne; i++){
-        for(int j=0; j<(*matrice).colonne; j++){
-            (*matrice).tab[i][j] = n;
-        }
-    }
-}
-
 void remplissage(matrice *matrice, float *liste){
     int index = 0;
     for(int i=0; i<(*matrice).ligne; i++){
@@ -73,10 +73,9 @@ void remplissage(matrice *matrice, float *liste){
     }
 }
 
-
 //////////////////////////////////////////////////////
 
-matrice prod_matriciel(matrice *matrice1, matrice *matrice2){
+void prod_matriciel(matrice *matrice_finale, matrice *matrice1, matrice *matrice2){
 
     if ((*matrice1).colonne != (*matrice2).ligne) {
         printf("Erreur lors du prod matriciel : pb de dim !\n");
@@ -84,43 +83,42 @@ matrice prod_matriciel(matrice *matrice1, matrice *matrice2){
         exit(EXIT_FAILURE);
     }
 
-    matrice matrice3 = creation_matrice((*matrice1).ligne, (*matrice2).colonne);
-    remplissage_n(&matrice3, 0);
+    if ((*matrice_finale).tab == NULL){
+        *matrice_finale = creation_matrice((*matrice1).ligne, (*matrice2).colonne);
+    }
     
     for(int i=0; i<(*matrice1).ligne; i++){
         for(int j=0; j<(*matrice2).colonne; j++){
+            (*matrice_finale).tab[i][j] = 0;
             for(int k=0; k<(*matrice1).colonne; k++){
-                matrice3.tab[i][j] += (*matrice1).tab[i][k]*(*matrice2).tab[k][j];
+                (*matrice_finale).tab[i][j] += (*matrice1).tab[i][k]*(*matrice2).tab[k][j];
             }
         }
     }
-    
-    return matrice3;
 }
 
-matrice soustraction_matriciel(matrice *matrice1, matrice *matrice2){
+void soustraction_matriciel(matrice *matrice_finale, matrice *matrice1, matrice *matrice2, float learning_rate){
     
     if (((*matrice1).ligne != (*matrice2).ligne) || ((*matrice1).colonne != (*matrice2).colonne)){
         printf("Erreur lors de la sous matriciel : pb de dim !");
+        printf("(%d,%d)  (%d,%d)", (*matrice1).ligne, (*matrice1).colonne, (*matrice2).ligne, (*matrice2).colonne);
         exit(EXIT_FAILURE);
     }
 
-    matrice matrice3 = creation_matrice((*matrice1).ligne, (*matrice1).colonne);
-    remplissage_n(&matrice3, 0);
+    if ((*matrice_finale).tab == NULL){
+        *matrice_finale = creation_matrice((*matrice1).ligne, (*matrice1).colonne);
+    }
 
     for(int i=0; i<(*matrice1).ligne; i++){
         for(int j=0; j<(*matrice1).colonne; j++){
-            matrice3.tab[i][j] = (*matrice1).tab[i][j]-(*matrice2).tab[i][j];
+            (*matrice_finale).tab[i][j] = (*matrice1).tab[i][j]- learning_rate*(*matrice2).tab[i][j];
         }
     }
-    
-    return matrice3;
 }
 
 matrice transposee(matrice *matrice1){
 
     matrice matrice2 = creation_matrice((*matrice1).colonne, (*matrice1).ligne);
-    remplissage_n(&matrice2, 0);
 
     for(int i=0; i<(*matrice1).colonne; i++){
         for(int j=0; j<(*matrice1).ligne; j++){
@@ -152,24 +150,31 @@ void somme_matrice_b(matrice *matrice1, matrice *matrice2){
     }
 }
 
-matrice somme_colonne(matrice *matrice1){
+void somme_colonne(matrice *matrice_finale, matrice *matrice1){
 
     float somme=0;
 
-    matrice matrice2 = creation_matrice((*matrice1).ligne, 1);
-    remplissage_n(&matrice2, 0);
+    if ((*matrice_finale).tab == NULL){
+        *matrice_finale = creation_matrice((*matrice1).ligne, 1);
+    }
 
     for(int i=0; i<(*matrice1).ligne; i++){
         somme=0;
         for(int j=0; j<(*matrice1).colonne; j++){
             somme+=(*matrice1).tab[i][j];
         }
-        matrice2.tab[i][0] = somme;
+        (*matrice_finale).tab[i][0] = somme;
     }
-    return matrice2;
 }
 
 void prod_Hadamard(matrice *matrice1, matrice *matrice2){
+
+    if ((*matrice1).colonne != (*matrice2).colonne || (*matrice1).ligne != (*matrice2).ligne){
+        printf("Erreur lors du prod Hadamard : pb de dim !\n");
+        printf("(%d,%d)  (%d,%d)", (*matrice1).ligne, (*matrice1).colonne, (*matrice2).ligne, (*matrice2).colonne);
+        exit(EXIT_FAILURE);
+    }
+
     for(int i=0; i<(*matrice1).ligne; i++){
         for(int j=0; j<(*matrice1).colonne; j++){
             (*matrice1).tab[i][j] *= (*matrice2).tab[i][j];
@@ -177,18 +182,20 @@ void prod_Hadamard(matrice *matrice1, matrice *matrice2){
     }
 }
 
-matrice cp_matrice(matrice *matrice1){
+void cp_matrice(matrice *matrice_finale, matrice *matrice1){
 
-    matrice matrice2 = creation_matrice((*matrice1).ligne, (*matrice1).colonne);
-    remplissage_n(&matrice2, 0);
+    if ((*matrice_finale).tab == NULL){
+        *matrice_finale = creation_matrice((*matrice1).ligne, (*matrice1).colonne);
+    }
 
     for(int i=0; i<(*matrice1).ligne; i++){
         for(int j=0; j<(*matrice1).colonne; j++){
-            matrice2.tab[i][j] = (*matrice1).tab[i][j];
+            (*matrice_finale).tab[i][j] = (*matrice1).tab[i][j];
         }
     }
-    return matrice2;
 }
+
+
 
 void initialiser_poids_he(matrice *matrice) {
     float stddev = sqrt(2.0 / (*matrice).ligne);  

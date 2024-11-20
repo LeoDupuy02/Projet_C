@@ -21,9 +21,9 @@ void remplissage_n(matrice *matrice, float n);
 
 void remplissage(matrice *matrice, float *liste);
 
-matrice prod_matriciel(matrice *matrice1, matrice *matrice2);
+void prod_matriciel(matrice *matrice_finale, matrice *matrice1, matrice *matrice2);
 
-matrice soustraction_matriciel(matrice *matrice1, matrice *matrice2);
+void soustraction_matriciel(matrice *matrice_finale, matrice *matrice1, matrice *matrice2, float learning_rate);
 
 matrice transposee(matrice *matrice1);
 
@@ -31,11 +31,11 @@ void multiplication_scalaire(matrice *matrice1, float n);
 
 void somme_matrice_b(matrice *matrice1, matrice *matrice2);
 
-matrice somme_colonne(matrice *matrice1);
+void somme_colonne(matrice *matrice_finale, matrice *matrice1);
 
 void prod_Hadamard(matrice *matrice1, matrice *matrice2);
 
-matrice cp_matrice(matrice *matrice1);
+void cp_matrice(matrice *matrice_finale, matrice *matrice1);
 
 void initialiser_poids_he(matrice *matrice);
 
