@@ -44,11 +44,10 @@ void softmax(matrice *mat){
 matrice d_ReLU(matrice *matrice1){
 
     matrice matrice2 = creation_matrice((*matrice1).ligne, (*matrice1).colonne);
-    remplissage_n(&matrice2, 0);
 
     for(int i=0; i<(*matrice1).ligne; i++){
         for(int j=0; j<(*matrice1).colonne; j++){
-            matrice2.tab[i][j] = ((*matrice1).tab[i][j] < 0) ? 0 : 1;
+            matrice2.tab[i][j] = ((*matrice1).tab[i][j] > 0) ? 1 : 0;
         }
     }
     return matrice2;
