@@ -1,0 +1,25 @@
+# Array of functions
+
+#include <stdio.h>
+#include <stdlib.h>
+
+int fa(int a){
+    printf("%d \n", a);
+    return 0;
+}
+
+int fb(){
+    printf("Function \n");
+    return 0;
+}
+
+int main() {
+    // Write C code here
+    int (**functions)() = (int (**)())malloc(2 * sizeof(int (*)()));
+    functions[0] = fa;
+    functions[1] = fb;
+    functions[0](8);
+    functions[1]();
+    
+    return 0;
+}
