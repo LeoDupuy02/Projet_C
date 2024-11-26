@@ -1,3 +1,6 @@
+/* Dans ce fichier tous les arguments d'une fonction commencent par la matrice à retourner et les matrices */
+/* en entrée sont notés A, B... */
+
 #ifndef MATRIX_OPERATIONS_H
 #define MATRIX_OPERATIONS_H
 
@@ -5,7 +8,6 @@
 #include <stdio.h>
 #include <time.h>
 
-// Définition des macros
 //#define DEBUG
 
 // Déclaration de la structure matrix
@@ -23,20 +25,20 @@ int init_unit_matrix(matrix *A);
 int display_matrix(matrix M);
 
 /* Operations on matrices */
-int matrix_product(matrix *output_matrix, matrix *A, matrix *B);
-int matrix_sum(matrix *output_matrix, matrix *A, matrix *B);
-int matrix_hadamard_product(matrix *output_matrix, matrix *A, matrix *B);
+int matrix_product(matrix *output, matrix *A, matrix *B);
+int matrix_sum(matrix *output, matrix *A, matrix *B);
+int matrix_hadamard_product(matrix *output, matrix *A, matrix *B);
+int matrix_convolution(matrix *output, matrix *M, matrix *K, int size, int step);
 
 /* Modify matrices */
-int matrix_transpose(matrix *output_matrix, matrix *A);
-int matrix_rotate_180(matrix *output_matrix, matrix *A);
+int matrix_transpose(matrix *output, matrix *A);
+int matrix_rotate_180(matrix *output, matrix *A);
 int matrix_crop(matrix *A, matrix *Z, int new_width, int new_height, int shift_left, int shift_top);
 
 /*free matrices*/
 int free_matrix(matrix M);
 
 #ifndef DEBUG
-matrix vect_matrix_convolution(matrix M, int size, int step);
 #endif // DEBUG
 
 #endif // MATRIX_OPERATIONS_H
