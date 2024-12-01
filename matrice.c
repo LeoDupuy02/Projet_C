@@ -158,12 +158,14 @@ void somme_colonne(matrice *matrice_finale, matrice *matrice1){
         *matrice_finale = creation_matrice((*matrice1).ligne, 1);
     }
 
+    int j;
     for(int i=0; i<(*matrice1).ligne; i++){
         somme=0;
-        for(int j=0; j<(*matrice1).colonne; j++){
+        j=0;
+        for(j; j<(*matrice1).colonne; j++){
             somme+=(*matrice1).tab[i][j];
         }
-        (*matrice_finale).tab[i][0] = somme;
+        (*matrice_finale).tab[i][0] = somme/j;
     }
 }
 
@@ -211,7 +213,7 @@ void initialiser_poids_he(matrice *matrice) {
 void initialiser_matrice_biais(matrice *matrice) {
     for (int i = 0; i < (*matrice).ligne; i++) {
         for (int j = 0; j < (*matrice).colonne; j++) {
-            (*matrice).tab[i][j] = 0.0; 
+            (*matrice).tab[i][j] = 0.01; 
         }
     }
 }
