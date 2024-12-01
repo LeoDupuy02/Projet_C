@@ -64,7 +64,7 @@ float log_loss(matrice *matrice1, matrice *matrice2) {
 
                 float prob = (*matrice1).tab[i][j] > 0 ? (*matrice1).tab[i][j] : 1e-7;
                 somme -= log(prob); 
-                nombre_labels++; 
+                nombre_labels++;
             }
         }
     }
