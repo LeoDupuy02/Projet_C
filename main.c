@@ -5,7 +5,7 @@
 #include "activation.h"
 #include "fichier.h"
 
-#define DEBUG
+//#define DEBUG
 #define DEBUG_ini
 #define DEBUG_FP
 #define DEBUG_BP
@@ -13,19 +13,34 @@
 
 ////////////////////////////////////////
 
-void initialisation(matrice *w, matrice *b, int taille_hidden_layers, int *hidden_layers){
+void initialisation(matrice *w, matrice *b, int load, int taille_hidden_layers, int *hidden_layers){
     #ifndef DEBUG
     printf("Initialisation...\n");
     #endif
 
+    char path_w[] = "matrice/W0.bin";
+    char path_b[] = "matrice/B0.bin";
+
     for(int i=0; i<taille_hidden_layers-1; i++){
 
-        w[i] = creation_matrice(hidden_layers[i+1], hidden_layers[i]);
-        initialiser_poids_he(&w[i]);
+        if(load){
 
-        b[i] = creation_matrice(hidden_layers[i+1], 1);
-        initialiser_matrice_biais(&b[i]);
+            path_w[9] = '0' + i;
+            path_b[9] = '0' + i;
 
+            w[i] = creation_matrice(hidden_layers[i+1], hidden_layers[i]);
+            chargement_matrice(path_w, &w[i]);
+            b[i] = creation_matrice(hidden_layers[i+1], 1);
+            chargement_matrice(path_b, &b[i]);
+
+        } else {
+
+            w[i] = creation_matrice(hidden_layers[i+1], hidden_layers[i]);
+            initialiser_poids_he(&w[i]);
+
+            b[i] = creation_matrice(hidden_layers[i+1], 1);
+            initialiser_matrice_biais(&b[i]);
+        }
 
         #ifndef DEBUG_ini
         printf("w[%d]\n", i);
@@ -40,7 +55,7 @@ void initialisation(matrice *w, matrice *b, int taille_hidden_layers, int *hidde
     }
 }
 
-void forward_propagation(matrice *a, matrice *z, matrice *w, matrice *b, matrice *X, int taille_hidden_layers, int *hidden_layers){
+void forward_propagation(matrice *a, matrice *z, matrice *w, matrice *b, int taille_hidden_layers, int *hidden_layers){
     #ifndef DEBUG
     printf("Forward...\n");
     #endif
@@ -75,7 +90,7 @@ void forward_propagation(matrice *a, matrice *z, matrice *w, matrice *b, matrice
     }   
 }
 
-void back_propagation(matrice *dz, matrice *dw, matrice *db, matrice *w, matrice *a, matrice *z, matrice *Y, int taille_hidden_layers, int *hidden_layers){
+void back_propagation(matrice *dz, matrice *dw, matrice *db, matrice *w, matrice *a, matrice *z, matrice *Y_train, int taille_hidden_layers, int *hidden_layers){
     #ifndef DEBUG
     printf("Back...\n");
     #endif
@@ -86,7 +101,7 @@ void back_propagation(matrice *dz, matrice *dw, matrice *db, matrice *w, matrice
     //Gradient de la dernière couche
 
     // dZ = A - Y
-    soustraction_matriciel(&dz[taille_hidden_layers-2], &a[taille_hidden_layers-1], Y, 1);
+    soustraction_matriciel(&dz[taille_hidden_layers-2], &a[taille_hidden_layers-1], Y_train, 1);
     // db = somme colonne (dZ)
     somme_colonne(&db[taille_hidden_layers-2], &dz[taille_hidden_layers-2]);
 
@@ -175,20 +190,23 @@ void update(matrice *w, matrice *b, matrice *dw, matrice *db, float learning_rat
 
 //////////////////////////////////////// 
 
-void perceptron(matrice *X, matrice *Y, int *hidden_layers, int taille_hidden_layers, float learning_rate, int nb_iter){
+void perceptron(matrice *X_train, matrice *Y_train, matrice *X_test, matrice *Y_test, int save, int load, int *hidden_layers, int taille_hidden_layers, float learning_rate, int nb_iter){
     #ifndef DEBUG
     printf("Perceptron...\n");
     #endif
 
     // Ajout du nb de ligne de X et Y en première et dernière position
-    hidden_layers[0]=(*X).ligne;
-    hidden_layers[taille_hidden_layers-1]=(*Y).ligne;
+    hidden_layers[0]=(*X_train).ligne;
+    hidden_layers[taille_hidden_layers-1]=(*Y_train).ligne;
 
     // Allocation des listes des matrices w et b coontenant les paramètres des neurones 
     matrice *w = malloc((taille_hidden_layers-1)*sizeof(matrice));
     matrice *b = malloc((taille_hidden_layers-1)*sizeof(matrice));
     matrice *z = malloc((taille_hidden_layers-1)*sizeof(matrice));
+    matrice *z_test = malloc((taille_hidden_layers-1)*sizeof(matrice));
     matrice *a = malloc((taille_hidden_layers)*sizeof(matrice));
+    matrice *a_test = malloc((taille_hidden_layers)*sizeof(matrice));
+    
 
     // Allocation des listes dw et db contenant les gardients 
     matrice *dw = malloc((taille_hidden_layers-1)*sizeof(matrice));
@@ -200,56 +218,83 @@ void perceptron(matrice *X, matrice *Y, int *hidden_layers, int taille_hidden_la
         w[i].tab = NULL;
         b[i].tab = NULL;
         z[i].tab = NULL;
+        z_test[i].tab = NULL;
         a[i].tab = NULL;
+        a_test[i].tab = NULL;
         dw[i].tab = NULL;
         db[i].tab = NULL;
         dz[i].tab = NULL;
     }
     a[taille_hidden_layers-1].tab = NULL;
+    a_test[taille_hidden_layers-1].tab = NULL;
 
     // Création du tableau contenant les valeurs log_loss
-    float *loss_history = (float *)malloc(nb_iter * sizeof(float));
+    float *loss_history_train = (float *)malloc(nb_iter * sizeof(float));
+    float *loss_history_test = (float *)malloc(nb_iter * sizeof(float));
 
-    initialisation(w, b, taille_hidden_layers, hidden_layers);
+    initialisation(w, b, load, taille_hidden_layers, hidden_layers);
 
     // Entrainement
-    cp_matrice(&a[0], X);
+    cp_matrice(&a[0], X_train);
+    cp_matrice(&a_test[0], X_test);
     for(int j=0; j<nb_iter; j++){
 
-        forward_propagation(a, z, w, b, X, taille_hidden_layers, hidden_layers);
+        forward_propagation(a, z, w, b, taille_hidden_layers, hidden_layers);
 
-        back_propagation(dz, dw, db, w, a, z, Y, taille_hidden_layers, hidden_layers);
+        back_propagation(dz, dw, db, w, a, z, Y_train, taille_hidden_layers, hidden_layers);
 
         update(w, b, dw, db, learning_rate, taille_hidden_layers);
 
-        float loss = log_loss(&a[taille_hidden_layers-1], Y); 
-        loss_history[j] = loss; 
-        printf("Iteration %d - Log Loss: %f\n", j, loss);
+        forward_propagation(a_test, z_test, w, b, taille_hidden_layers, hidden_layers);
+
+        float loss_train = log_loss(&a[taille_hidden_layers-1], Y_train); 
+        float loss_test = log_loss(&a_test[taille_hidden_layers-1], Y_test);
+        loss_history_train[j] = loss_train; 
+        loss_history_test[j] = loss_test; 
+        printf("Iteration %d - Log Loss: %f | test loss : %f\n", j, loss_train, loss_test);
 
     }
 
     // Sauvegarde du log_loss
-    FILE *f = fopen("loss_data.csv", "w");
+    FILE *file = fopen("loss_data.csv", "w");
+    fprintf(file, "Iteration;Train_loss;Test_loss\n");
     for (int i = 0; i < nb_iter; i++) {
-        fprintf(f, "%f\n", loss_history[i]);
+        fprintf(file, "%d;%f;%f\n", i+1, loss_history_train[i], loss_history_test[i]);
     }
-    fclose(f);
+    fclose(file);
 
+    // Enregistrement des matrices si besoin
+    if(save){
+        char path_w[] = "matrice/W0.bin";
+        char path_b[] = "matrice/B0.bin";
+        for(int i=0;i<taille_hidden_layers-1;i++){
+            path_w[9] = '0' + i;
+            path_b[9] = '0' + i;
+            enregistrement_matrice(path_w, &w[i]);
+            enregistrement_matrice(path_b, &b[i]);
+        }
+    }
+    affichage_matrice(&w[0]);
     // Séction libération de la mémoire 
     for(int i=0; i<taille_hidden_layers-1; i++){
         liberation_matrice(&w[i]);
         liberation_matrice(&b[i]);
         liberation_matrice(&a[i]);
+        liberation_matrice(&a_test[i]);
         liberation_matrice(&z[i]);
+        liberation_matrice(&z_test[i]);
 
         liberation_matrice(&dw[i]);
         liberation_matrice(&db[i]);
         liberation_matrice(&dz[i]);
     }
     liberation_matrice(&a[taille_hidden_layers-1]);
+    liberation_matrice(&a_test[taille_hidden_layers-1]);
 
     free(z);
+    free(z_test);
     free(a);
+    free(a_test);
     free(b);
     free(w);
 
@@ -257,7 +302,8 @@ void perceptron(matrice *X, matrice *Y, int *hidden_layers, int taille_hidden_la
     free(dw);
     free(dz);
 
-    free(loss_history);
+    free(loss_history_train);
+    free(loss_history_test);
 
     printf("FIN !");
 }
@@ -266,21 +312,28 @@ void perceptron(matrice *X, matrice *Y, int *hidden_layers, int taille_hidden_la
 
 void main(){
 
-    int num_images = 1000;       
+    int num_images_train = 10;
+    int num_images_test = 10;       
 
-    matrice X = creation_matrice(28*28, num_images);
-    matrice Y = creation_matrice(10, num_images);
+    matrice X_train = creation_matrice(28*28, num_images_train);
+    matrice X_test = creation_matrice(28*28, num_images_test);
+    matrice Y_train = creation_matrice(10, num_images_train);
+    matrice Y_test = creation_matrice(10, num_images_test);
 
     // Chargement des datasets
-    charger_images("train-images.idx3-ubyte", &X, num_images, 28*28);
-    charger_labels("train-labels.idx1-ubyte", &Y, num_images);
+    train_images("train-images.idx3-ubyte", &X_train, num_images_train);
+    test_images("t10k-images.idx3-ubyte", &X_test, num_images_test);
+    train_labels("train-labels.idx1-ubyte", &Y_train, num_images_train);
+    test_labels("t10k-labels.idx1-ubyte", &Y_test, num_images_test);
 
     // Création des couhes intermédiaires et de sa taille
-    int hidden_layers[3] = {0, 128, 0};
+    int hidden_layers[3] = {0, 4, 0};
     int taille_hidden_layers = sizeof(hidden_layers) / sizeof(hidden_layers[0]);
 
-    perceptron(&X, &Y, hidden_layers, taille_hidden_layers, 0.0001, 40);
+    perceptron(&X_train, &Y_train, &X_test, &Y_test, 1, 0, hidden_layers, taille_hidden_layers, 0.001, 1);
 
-    liberation_matrice(&X);
-    liberation_matrice(&Y);
+    liberation_matrice(&X_train);
+    liberation_matrice(&X_test);
+    liberation_matrice(&Y_train);
+    liberation_matrice(&Y_test);
 }
