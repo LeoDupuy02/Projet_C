@@ -3,70 +3,128 @@
 #include <stdint.h>
 #include "matrice.h"
 
-
-// Fonction pour lire un entier de 4 octets (format big-endian) dans le fichier
-int lire_int(FILE *fichier){
-    int valeur = 0;
-    for (int i = 0; i < 4; i++) {
-        valeur = (valeur << 8) | fgetc(fichier);
-    }
-    return valeur;
-}
-
-// Lecture du fichier d'images et stockage dans la matrice X
-void charger_images(const char *nom_fichier, matrice *X, int num_images, int taille_image){
+void train_images(char *nom_fichier, matrice *X_train, int num_images){
     FILE *fichier = fopen(nom_fichier, "rb");
-    if (!fichier) {
-        fprintf(stderr, "Erreur lors de l'ouverture du fichier d'images.\n");
-        exit(1);
+
+    // Passer Header
+    for(int i=0; i<16;i++){
+        fgetc(fichier);
     }
 
-    // Lecture de l'en-tête
-    lire_int(fichier);  // Magic number
-    int nb_images = lire_int(fichier);
-    int nb_lignes = lire_int(fichier);
-    int nb_colonnes = lire_int(fichier);
-
-    if (nb_images < num_images || nb_lignes * nb_colonnes != taille_image) {
-        fprintf(stderr, "Les dimensions de l'image ne correspondent pas aux attentes.\n");
-        exit(1);
-    }
-
-    // Lecture des images et stockage dans X
+    // Récup des images
     for (int i = 0; i < num_images; i++) {
-        for (int j = 0; j < taille_image; j++) {
-            X->tab[j][i] = fgetc(fichier) / 255.0;  // Normalisation
+        for (int j = 0; j < 28*28; j++) {
+            (*X_train).tab[j][i] = fgetc(fichier) / 255.0;
         }
     }
 
     fclose(fichier);
+    printf("Chargement des images_train terminés !\n");
 }
 
-// Lecture du fichier de labels et stockage dans la matrice Y
-void charger_labels(const char *nom_fichier, matrice *Y, int num_images){
+void train_labels(const char *nom_fichier, matrice *Y_train, int num_images){
 
     FILE *fichier = fopen(nom_fichier, "rb");
-    if (!fichier) {
-        fprintf(stderr, "Erreur lors de l'ouverture du fichier de labels.\n");
-        exit(1);
-    }
 
-    // Lecture de l'en-tête
-    lire_int(fichier);  // Magic number
-    int nb_labels = lire_int(fichier);
-
-    if (nb_labels < num_images) {
-        fprintf(stderr, "Le nombre de labels est inférieur au nombre d'images.\n");
-        exit(1);
+    // Passer Header
+    for(int i=0; i<8;i++){
+        fgetc(fichier);
     }
 
     // Lecture des labels et stockage dans Y
     for (int i = 0; i < num_images; i++) {
         int label = fgetc(fichier);
-        if (label >= 0 && label < 10) {
-            Y->tab[label][i] = 1.0;  // Encodage one-hot
+        (*Y_train).tab[label][i] = 1.0; // Mise du bit de l'étiquette à 1
+    }
+
+    fclose(fichier);
+    printf("Chargement des labels_train terminés !\n");
+}
+
+void test_images(char *nom_fichier, matrice *X_test, int num_images){
+    FILE *fichier = fopen(nom_fichier, "rb");
+
+    // Passer Header
+    for(int i=0; i<16;i++){
+        fgetc(fichier);
+    }
+
+    // Récup des images
+    for (int i = 0; i < num_images; i++) {
+        for (int j = 0; j < 28*28; j++) {
+            (*X_test).tab[j][i] = fgetc(fichier) / 255.0;
         }
     }
 
     fclose(fichier);
+    printf("Chargement des images_test terminés !\n");
+}
+
+void test_labels(const char *nom_fichier, matrice *Y_test, int num_images){
+
+    FILE *fichier = fopen(nom_fichier, "rb");
+
+    // Passer Header
+    for(int i=0; i<8;i++){
+        fgetc(fichier);
+    }
+
+    // Lecture des labels et stockage dans Y
+    for (int i = 0; i < num_images; i++) {
+        int label = fgetc(fichier);
+        (*Y_test).tab[label][i] = 1.0; // Mise du bit de l'étiquette à 1
+    }
+
+    fclose(fichier);
+    printf("Chargement des labels_test terminés !\n");
+}
+
+void enregistrement_matrice(char *nom_fichier, matrice *matrice1){
+    FILE *fichier = fopen(nom_fichier, "wb");
+        if (!fichier) {
+        perror("Erreur lors de l'enregistrement du fichier\n");
+        exit(EXIT_FAILURE);
+    }
+    // Écriture nb ligne sur 4 bits
+    fwrite(&(*matrice1).ligne, sizeof(int), 1, fichier);
+    // Écriture nb colonne sur 4 bits
+    fwrite(&(*matrice1).colonne, sizeof(int), 1, fichier);
+
+    // Écriture des lignes avec chaque valeurs sur 4 bits
+    for(int i=0; i<(*matrice1).ligne; i++){
+        for(int j=0; j<(*matrice1).colonne; j++){
+            fwrite(&(*matrice1).tab[i][j], sizeof(float), 1, fichier);           
+        }
+    }
+
+    fclose(fichier);
+    printf("Matrice enregistree !\n");
+}
+
+void chargement_matrice(char *nom_fichier, matrice *matrice1){
+    FILE *fichier = fopen(nom_fichier, "rb");
+    if (!fichier) {
+        perror("Erreur lors du chargement du fichier\n");
+        exit(EXIT_FAILURE);
+    }
+
+    int ligne, colonne;
+    // Lecture nb ligne sur 4 bits
+    fread(&ligne, sizeof(int), 1, fichier);
+    // Lecture nb colonne sur 4 bits
+    fread(&colonne, sizeof(int), 1, fichier);
+
+    if((*matrice1).ligne == ligne && (*matrice1).colonne == colonne){
+        // Lire des lignes avec chaque valeurs sur 4 bits
+        for(int i=0; i<(*matrice1).ligne; i++){
+            fread(&(*matrice1).tab[i], sizeof(float), colonne, fichier);
+        }
+    } else {
+        printf("Erreur lors du chargement des matrices : pb de dim !\n");
+        printf("(%d,%d)  (%d,%d)", (*matrice1).ligne, (*matrice1).colonne, ligne, colonne);
+        exit(EXIT_FAILURE);
+    }
+
+    fclose(fichier);
+    printf("Matrice chargee !\n");
 }
